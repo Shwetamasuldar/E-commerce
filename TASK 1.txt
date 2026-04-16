@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple E-Commerce Store - Section Wise Implementation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .section { border: 3px solid #007bff; margin: 30px 0; padding: 25px; border-radius: 12px; background: #f8f9fa; }
+        .section h2 { color: #007bff; border-bottom: 3px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .product-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .product-card:hover { transform: translateY(-5px); }
+        .product-img { width: 100%; height: 200px; object-fit: cover; }
+        .product-info { padding: 20px; }
+        .price { font-size: 1.5em; font-weight: bold; color: #28a745; }
+        .btn { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; transition: background 0.3s; }
+        .btn:hover { background: #0056b3; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .cart-panel { position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 15px; border-radius: 10px; min-width: 200px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #007bff; color: white; }
+        .form-group { margin: 15px 0; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 1em; }
+        .hidden { display: none; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+<!-- =============================================================================
+     SECTION 1: PRODUCT LISTINGS & DATABASE SIMULATION
+     HTML/CSS/JS Frontend with mock database
+     ============================================================================= -->
+<div class="section">
+    <h2>🛒 SECTION 1: Product Catalog</h2>
+    <div class="cart-panel" id="cartPanel">
+        <strong>🛒 Cart: <span id="cartCount">0</span> items</strong><br>
+        <small>Total: $<span id="cartTotal">$0.00</span></small>
+    </div>
+    
+    <div class="products-grid" id="productsGrid">
+        <!-- Products dynamically loaded by JavaScript -->
+    </div>
+</div>
+
+<!-- =============================================================================
+     SECTION 2: PRODUCT DETAILS PAGE (Modal)
+     Dynamic product details + zoom functionality
+     ============================================================================= -->
+<div class="section hidden" id="productDetailSection">
+    <h2>📦 SECTION 2: Product Details</h2>
+    <div id="productDetailContent">
+        <!-- Dynamic product details -->
+    </div>
+    <button class="btn" onclick="closeProductDetail()">← Back to Store</button>
+</div>
+
+<!-- =============================================================================
+     SECTION 3: SHOPPING CART FUNCTIONALITY
+     Add/Remove/Update cart items with persistence
+     ============================================================================= -->
+<div class="section hidden" id="cartSection">
+    <h2>🛍️ SECTION 3: Shopping Cart</h2>
+    <div id="cartTable">
+        <!-- Dynamic cart content -->
+    </div>
+    <button class="btn" onclick="showSection('products')">← Continue Shopping</button>
+    <button class="btn" onclick="showCheckout()">Proceed to Checkout</button>
+</div>
+
+<!-- =============================================================================
+     SECTION 4: USER REGISTRATION & LOGIN
+     Client-side authentication simulation
+     ============================================================================= -->
+<div class="section hidden" id="authSection">
+    <h2>👤 SECTION 4: User Account</h2>
+    <div class="form-group">
+        <label>Email:</label>
+        <input type="email" id="userEmail" placeholder="user@example.com">
+    </div>
+    <div class="form-group">
+        <label>Password:</label>
+        <input type="password" id="userPassword" placeholder="••••••">
+    </div>
+    <button class="btn" onclick="registerUser()">Create Account</button>
+    <button class="btn" onclick="loginUser()">Login</button>
+    <p id="authMessage"></p>
+</div>
+
+<!-- =============================================================================
+     SECTION 5: ORDER PROCESSING & CONFIRMATION
+     Complete checkout flow with order summary
+     ============================================================================= -->
+<div class="section hidden" id="checkoutSection">
+    <h2>💳 SECTION 5: Checkout & Order Processing</h2>
+    <div id="orderSummary"></div>
+    <div class="form-group">
+        <label>Full Name:</label>
+        <input type="text" id="customerName" placeholder="John Doe">
+    </div>
+    <div class="form-group">
+        <label>Address:</label>
+        <textarea id="customerAddress" placeholder="123 Main St..."></textarea>
+    </div>
+    <button class="btn" onclick="processOrder()">Place Order</button>
+    <button class="btn" onclick="showCart()">← Back to Cart</button>
+</div>
+
+<div class="section hidden" id="orderSuccess">
+    <h2>✅ Order Confirmed!</h2>
+    <div class="success">
+        <p>Thank you for your purchase! Order #<span id="orderId"></span></p>
+        <p>We'll ship within 24-48 hours.</p>
+    </div>
+    <button class="btn" onclick="location.reload()">Shop More</button>
+</div>
+
+<script>
+/* =============================================================================
+   JAVASCRIPT DATABASE & CORE FUNCTIONALITY - ALL SECTIONS
+   ============================================================================= */
+
+// SECTION 1: Mock Database (Products, Users, Orders)
+const productsDB = [
+    {id:1, name:'iPhone 15 Pro', price:999.99, img:'https://via.placeholder.com/300x200/007bff/ffffff?text=iPhone', desc:'Latest flagship smartphone', stock:10},
+    {id:2, name:'MacBook Air M3', price:1299.99, img:'https://via.placeholder.com/300x200/28a745/ffffff?text=MacBook', desc:'Ultra-light laptop', stock:5},
+    {id:3, name:'AirPods Pro 2', price:249.99, img:'https://via.placeholder.com/300x200/dc3545/ffffff?text=AirPods', desc:'Noise-cancelling earbuds', stock:20},
+    {id:4, name:'Apple Watch Ultra', price:799.99, img:'https://via.placeholder.com/300x200/ffc107/000?text=Watch', desc:'Rugged smartwatch', stock:8},
+    {id:5, name:'iPad Pro', price:1099.99, img:'https://via.placeholder.com/300x200/17a2b8/fff?text=iPad', desc:'12.9" professional tablet', stock:12},
+    {id:6, name:'Magic Keyboard', price:349.99, img:'https://via.placeholder.com/300x200/6f42c1/fff?text=Keyboard', desc:'Premium wireless keyboard', stock:15}
+];
+
+let cart = JSON.parse(localStorage.getItem('cart')) || [];
+let users = JSON.parse(localStorage.getItem('users')) || [];
+let orders = JSON.parse(localStorage.getItem('orders')) || [];
+let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+
+// Initialize app
+document.addEventListener('DOMContentLoaded', function() {
+    renderProducts();
+    updateCartDisplay();
+    if (currentUser) showWelcome();
+});
+
+// SECTION 1: Product Listing Functions
+function renderProducts() {
+    const grid = document.getElementById('productsGrid');
+    grid.innerHTML = productsDB.map(product => `
+        <div class="product-card" onclick="showProductDetail(${product.id})">
+            <img src="${product.img}" class="product-img" alt="${product.name}">
+            <div class="product-info">
+                <h3>${product.name}</h3>
+                <div class="price">$${product.price.toFixed(2)}</div>
+                <p>${product.desc}</p>
+                <button class="btn" onclick="event.stopPropagation(); addToCart(${product.id})">Add to Cart</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showProductDetail(id) {
+    const product = productsDB.find(p => p.id === id);
+    document.getElementById('productDetailContent').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;">
+            <img src="${product.img}" style="width:100%;height:400px;object-fit:cover;border-radius:10px;">
+            <div>
+                <h1>${product.name}</h1>
+                <div class="price" style="font-size:2em;">$${product.price.toFixed(2)}</div>
+                <p>${product.desc}</p>
+                <p><strong>Stock:</strong> ${product.stock} available</p>
+                <button class="btn" onclick="addToCart(${product.id})" style="font-size:1.2em;padding:15px;">🛒 Add to Cart</button>
+            </div>
+        </div>
+    `;
+    showSection('productDetail');
+}
+
+// SECTION 2: Shopping Cart Functions
+function addToCart(productId) {
+    const product = productsDB.find(p => p.id === productId);
+    const cartItem = cart.find(item => item.id === productId);
+    
+    if (cartItem) {
+        cartItem.quantity += 1;
+    } else {
+        cart.push({...product, quantity: 1});
+    }
+    
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartDisplay();
+    alert(`${product.name} added to cart!`);
+}
+
+function updateCartDisplay() {
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    document.getElementById('cartCount').textContent = totalItems;
+    document.getElementById('cartTotal').textContent = totalPrice.toFixed(2);
+}
+
+function renderCart() {
+    if (cart.length === 0) {
+        document.getElementById('cartTable').innerHTML = '<p>Your cart is empty</p>';
+        return;
+    }
+    
+    document.getElementById('cartTable').innerHTML = `
+        <table>
+            <tr><th>Product</th><th>Price</th><th>Qty</th><th>Total</th><th></th></tr>
+            ${cart.map(item => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>$${item.price.toFixed(2)}</td>
+                    <td>
+                        <input type="number" value="${item.quantity}" min="1" 
+                               onchange="updateCartItem(${item.id}, this.value)" style="width:60px;">
+                    </td>
+                    <td>$${(item.price * item.quantity).toFixed(2)}</td>
+                    <td><button class="btn btn-danger" onclick="removeFromCart(${item.id})">Remove</button></td>
+                </tr>
+            `).join('')}
+            <tr style="font-weight:bold;"><td colspan="3">TOTAL</td><td>$${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</td><td></td></tr>
+        </table>
+    `;
+}
+
+function updateCartItem(id, quantity) {
+    const item = cart.find(item => item.id == id);
+    if (item) {
+        item.quantity = parseInt(quantity);
+        if (item.quantity <= 0) {
+            removeFromCart(id);
+        } else {
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartDisplay();
+            renderCart();
+        }
+    }
+}
+
+function removeFromCart(id) {
+    cart = cart.filter(item => item.id != id);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartDisplay();
+    renderCart();
+}
+
+// SECTION 3: User Authentication (Client-side)
+function registerUser() {
+    const email = document.getElementById('userEmail').value;
+    const password = document.getElementById('userPassword').value;
+    
+    if (users.find(u => u.email === email)) {
+        document.getElementById('authMessage').innerHTML = '<span style="color:red;">User already exists!</span>';
+        return;
+    }
+    
+    const user = { email, password, orders: [] };
+    users.push(user);
+    localStorage.setItem('users', JSON.stringify(users));
+    document.getElementById('authMessage').innerHTML = '<span style="color:green;">Account created successfully!</span>';
+}
+
+function loginUser() {
+    const email = document.getElementById('userEmail').value;
+    const password = document.getElementById('userPassword').value;
+    const user = users.find(u => u.email === email && u.password === password);
+    
+    if (user) {
+        currentUser = user;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showWelcome();
+        showSection('products');
+    } else {
+        document.getElementById('authMessage').innerHTML = '<span style="color:red;">Invalid credentials!</span>';
+    }
+}
+
+function showWelcome() {
+    document.querySelector('.cart-panel').innerHTML += `<br>Welcome, ${currentUser.email}!`;
+}
+
+// SECTION 4: Order Processing
+function processOrder() {
+    if (cart.length === 0) {
+        alert('Cart is empty!');
+        return;
+    }
+    
+    const name = document.getElementById('customerName').value;
+    const address = document.getElementById('customerAddress').value;
+    
+    if (!name || !address) {
+        alert('Please fill in all fields!');
+        return;
+    }
+    
+    const order = {
+        id: Date.now(),
+        items: [...cart],
+        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+        customer: { name, address },
+        date: new Date().toLocaleString(),
+        status: 'pending'
+    };
+    
+    if (currentUser) {
+        currentUser.orders.push(order);
+        localStorage.setItem('users', JSON.stringify(users));
+    }
+    orders.push(order);
+    localStorage.setItem('orders', JSON.stringify(orders));
+    
+    cart = [];
+    localStorage.setItem('cart', JSON.stringify(cart));
+    
+    document.getElementById('orderId').textContent = order.id;
+    showSection('orderSuccess');
+}
+
+// SECTION 5: Navigation & Section Management
+function showSection(sectionName) {
+    document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+    document.getElementById(sectionName + 'Section').classList.remove('hidden');
+    
+    if (sectionName === 'cart') renderCart();
+    if (sectionName === 'checkout') renderOrderSummary();
+}
+
+function renderOrderSummary() {
+    document.getElementById('orderSummary').innerHTML = cart.map(item => 
+        `<p>${item.name} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</p>`
+    ).join('') + `<p><strong>Total: $${cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}</strong></p>`;
+}
+
+function showProductDetail(id) { showSection('productDetail'); }
+function showCart() { showSection('cart'); }
+function showCheckout() { showSection('checkout'); }
+function showAuth() { showSection('auth'); }
+function closeProductDetail() { showSection('products'); }
+</script>
+
+</body>
+</html>
